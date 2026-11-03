@@ -352,6 +352,9 @@ async function errorText(res) {
   } catch { /* not JSON */ }
   if (res.status === 401) return 'nieprawidłowy klucz API (sprawdź ustawienia)';
   if (res.status === 429) return 'za dużo zapytań, spróbuj za chwilę';
+  if (res.status === 403 && /tier|subscription/i.test(detail)) {
+    return `model „${settings.model}” nie jest dostępny w tym planie Mistral. Wybierz inny model w ustawieniach (np. mistral-small-latest).`;
+  }
   return `${res.status} ${detail}`.trim();
 }
 
