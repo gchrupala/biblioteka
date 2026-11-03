@@ -33,7 +33,7 @@
     <main>
       <header id="chat-head">
         <button id="open-sidebar" class="icon only-mobile" aria-label="Pokaż rozmowy">☰</button>
-        <div id="chat-title"></div>
+        <div id="chat-title" dir="auto"></div>
         <label id="lang-wrap" hidden>na język
           <select id="target-lang"></select>
         </label>
@@ -43,7 +43,7 @@
       <div id="messages"></div>
 
       <form id="composer" hidden>
-        <textarea id="input" rows="3"></textarea>
+        <textarea id="input" rows="3" dir="auto"></textarea>
         <div class="composer-actions">
           <button type="button" id="stop" hidden>Zatrzymaj</button>
           <button type="submit" id="send" class="primary">Wyślij</button>

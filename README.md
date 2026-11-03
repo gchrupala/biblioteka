@@ -3,7 +3,7 @@
 A small chat page for brainstorming stories and translating them. It runs entirely in the browser and talks directly to the [Mistral API](https://docs.mistral.ai/). There is no server.
 
 - **Pomysły** (ideas): a writing helper that asks questions and suggests options instead of writing the story itself.
-- **Tłumaczenie** (translation): a literary translator into a chosen language (Polish, Dutch, English, German, French, Spanish).
+- **Tłumaczenie** (translation): a literary translator into a chosen language (Polish, English, Dutch, Persian, Spanish).
 
 The system prompts are at the top of `app.js`.
 

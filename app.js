@@ -16,10 +16,9 @@ const DEFAULTS = {
 
 const LANGS = {
   pl: 'polski',
-  nl: 'niderlandzki',
   en: 'angielski',
-  de: 'niemiecki',
-  fr: 'francuski',
+  nl: 'niderlandzki',
+  fa: 'perski (farsi)',
   es: 'hiszpański',
 };
 
@@ -38,6 +37,7 @@ Zasady:
 - Zachowaj jej styl, ton i sposób opowiadania. Nie upiększaj tekstu i nie poprawiaj treści.
 - Imiona i nazwy własne zostaw bez zmian, chyba że autorka poprosi inaczej.
 - Gry słów, rymy i powiedzonka oddaj tak, żeby działały w języku docelowym.
+- Po persku pisz alfabetem perskim, chyba że autorka poprosi o transkrypcję łacińską.
 - Najpierw podaj samo tłumaczenie. Potem, tylko jeśli to potrzebne, dodaj krótką listę „Uwagi” z wyjaśnieniem trudniejszych decyzji, w języku, w którym pisze autorka.
 - Jeśli autorka zadaje pytanie o tłumaczenie albo prosi o zmianę, odpowiedz na to, zamiast tłumaczyć jej wiadomość.`;
   }
@@ -148,6 +148,14 @@ function renderMarkdown(text) {
   return div.outerHTML;
 }
 
+// Sets rendered Markdown and lets each block pick its own text direction,
+// so Persian (right-to-left) and Latin-script paragraphs both display correctly.
+function setMarkdown(el, text) {
+  el.innerHTML = renderMarkdown(text);
+  el.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th, div')
+    .forEach(block => { block.dir = 'auto'; });
+}
+
 function formatDate(ms) {
   return new Date(ms).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
 }
@@ -161,6 +169,7 @@ function renderList() {
     const title = document.createElement('span');
     title.className = 'conv-title';
     title.textContent = conv.title || 'Nowa rozmowa';
+    title.dir = 'auto';
     const meta = document.createElement('span');
     meta.className = 'conv-meta';
     meta.textContent = `${MODES[conv.mode].label} · ${formatDate(conv.updatedAt)}`;
@@ -178,12 +187,13 @@ function renderList() {
 function messageElement(msg) {
   const div = document.createElement('div');
   div.className = `msg ${msg.role}`;
+  div.dir = 'auto';
   if (msg.role === 'user') {
     div.textContent = msg.content;
   } else {
     const body = document.createElement('div');
     body.className = 'msg-body';
-    body.innerHTML = renderMarkdown(msg.content);
+    setMarkdown(body, msg.content);
     const actions = document.createElement('div');
     actions.className = 'msg-actions';
     const copy = document.createElement('button');
@@ -308,7 +318,7 @@ async function send(text) {
         const delta = JSON.parse(data).choices?.[0]?.delta?.content;
         if (typeof delta === 'string') reply.content += delta;
       }
-      body.innerHTML = renderMarkdown(reply.content);
+      setMarkdown(body, reply.content);
       messages.scrollTop = messages.scrollHeight;
     }
   } catch (err) {
