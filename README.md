@@ -5,7 +5,7 @@ A small chat page for brainstorming stories and translating them. It runs entire
 - **Pomysły** (ideas): a writing helper that asks questions and suggests options instead of writing the story itself.
 - **Tłumaczenie** (translation): a literary translator into a chosen language (Polish, English, Dutch, Persian, Spanish).
 
-The system prompts are at the top of `app.js`.
+The system prompts are in `prompts.js`.
 
 ## Setup
 
