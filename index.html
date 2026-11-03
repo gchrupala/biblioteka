@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Biblioteka</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <div class="side-head">
+        <h1>Biblioteka</h1>
+        <button id="close-sidebar" class="icon only-mobile" aria-label="Zamknij listę">×</button>
+      </div>
+      <div class="new-buttons">
+        <button id="new-brainstorm" class="primary">+ Pomysły</button>
+        <button id="new-translate" class="primary">+ Tłumaczenie</button>
+      </div>
+      <ul id="conv-list"></ul>
+      <div class="side-foot">
+        <div class="sync-row">
+          <button id="sync-btn">Synchronizuj</button>
+          <span id="sync-status"></span>
+        </div>
+        <button id="settings-btn">Ustawienia</button>
+      </div>
+    </aside>
+
+    <main>
+      <header id="chat-head">
+        <button id="open-sidebar" class="icon only-mobile" aria-label="Pokaż rozmowy">☰</button>
+        <div id="chat-title"></div>
+        <label id="lang-wrap" hidden>na język
+          <select id="target-lang"></select>
+        </label>
+        <button id="delete-conv" hidden>Usuń</button>
+      </header>
+
+      <div id="messages"></div>
+
+      <form id="composer" hidden>
+        <textarea id="input" rows="3"></textarea>
+        <div class="composer-actions">
+          <button type="button" id="stop" hidden>Zatrzymaj</button>
+          <button type="submit" id="send" class="primary">Wyślij</button>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <dialog id="settings">
+    <form method="dialog" id="settings-form">
+      <h2>Ustawienia</h2>
+
+      <label>Imię (folder w repozytorium danych)
+        <input name="user" autocomplete="off" placeholder="np. zosia">
+      </label>
+
+      <fieldset>
+        <legend>Mistral</legend>
+        <label>Klucz API
+          <input name="mistralKey" type="password" autocomplete="off">
+        </label>
+        <label>Model
+          <input name="model" list="model-list" autocomplete="off">
+          <datalist id="model-list"></datalist>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Synchronizacja z GitHubem (opcjonalnie)</legend>
+        <label>Token GitHub (fine-grained, Contents: read and write)
+          <input name="githubToken" type="password" autocomplete="off">
+        </label>
+        <label>Repozytorium
+          <input name="repo" autocomplete="off" placeholder="właściciel/nazwa">
+        </label>
+      </fieldset>
+
+      <div class="dialog-actions">
+        <button value="cancel" formnovalidate>Anuluj</button>
+        <button value="save" class="primary">Zapisz</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>
