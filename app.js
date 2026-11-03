@@ -9,10 +9,14 @@ const MISTRAL_URL = 'https://api.mistral.ai/v1';
 const DEFAULTS = {
   user: '',
   mistralKey: '',
-  model: 'mistral-large-latest',
+  model: 'mistral-small-latest',
   githubToken: '',
   repo: 'gchrupala/app-data',
 };
+
+// Tried in this order when the chosen model is not included in the Mistral plan.
+// All are open-weight models.
+const FALLBACK_MODELS = ['mistral-small-latest', 'open-mistral-nemo', 'ministral-8b-latest'];
 
 const LANGS = {
   pl: 'polski',
@@ -285,23 +289,7 @@ async function send(text) {
   setBusy(true);
 
   try {
-    const res = await fetch(`${MISTRAL_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${settings.mistralKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: settings.model || DEFAULTS.model,
-        stream: true,
-        messages: [
-          { role: 'system', content: systemPrompt(conv) },
-          ...conv.messages.map(m => ({ role: m.role, content: m.content })),
-        ],
-      }),
-      signal: controller.signal,
-    });
-    if (!res.ok) throw new Error(await errorText(res));
+    const res = await requestChat(conv, controller.signal, messages);
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
@@ -344,18 +332,60 @@ async function send(text) {
   }
 }
 
-async function errorText(res) {
-  let detail = '';
-  try {
-    const j = await res.json();
-    detail = j.message || j.detail || JSON.stringify(j);
-  } catch { /* not JSON */ }
-  if (res.status === 401) return 'nieprawidłowy klucz API (sprawdź ustawienia)';
-  if (res.status === 429) return 'za dużo zapytań, spróbuj za chwilę';
-  if (res.status === 403 && /tier|subscription/i.test(detail)) {
-    return `model „${settings.model}” nie jest dostępny w tym planie Mistral. Wybierz inny model w ustawieniach (np. mistral-small-latest).`;
+function chatRequest(conv, model, signal) {
+  return fetch(`${MISTRAL_URL}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${settings.mistralKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      stream: true,
+      messages: [
+        { role: 'system', content: systemPrompt(conv) },
+        ...conv.messages.map(m => ({ role: m.role, content: m.content })),
+      ],
+    }),
+    signal,
+  });
+}
+
+// Sends the request with the chosen model. If the Mistral plan does not include
+// that model, tries the fallback models and remembers the first one that works.
+async function requestChat(conv, signal, container) {
+  const chosen = settings.model || DEFAULTS.model;
+  const candidates = [chosen, ...FALLBACK_MODELS.filter(m => m !== chosen)];
+  for (const model of candidates) {
+    const res = await chatRequest(conv, model, signal);
+    if (res.ok) {
+      if (model !== chosen) {
+        settings.model = model;
+        saveSettings();
+        const note = document.createElement('div');
+        note.className = 'msg info';
+        note.textContent = `Model „${chosen}” nie jest dostępny w tym planie Mistral, więc od teraz używam „${model}”. Można to zmienić w ustawieniach.`;
+        container.insertBefore(note, container.lastElementChild);
+      }
+      return res;
+    }
+    const detail = await res.text();
+    if (res.status === 403 && /tier|subscription/i.test(detail)) continue;
+    throw new Error(errorMessage(res.status, detail));
   }
-  return `${res.status} ${detail}`.trim();
+  throw new Error(`żaden z modeli (${candidates.join(', ')}) nie jest dostępny w tym planie Mistral. Sprawdź plan na console.mistral.ai.`);
+}
+
+function errorMessage(status, text) {
+  let detail = text;
+  try {
+    const j = JSON.parse(text);
+    detail = j.message || j.detail || text;
+    if (typeof detail !== 'string') detail = JSON.stringify(detail);
+  } catch { /* not JSON */ }
+  if (status === 401) return 'nieprawidłowy klucz API (sprawdź ustawienia)';
+  if (status === 429) return 'za dużo zapytań, spróbuj za chwilę';
+  return `${status} ${detail}`.trim();
 }
 
 function setBusy(busy) {

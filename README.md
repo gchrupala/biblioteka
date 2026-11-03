@@ -29,4 +29,4 @@ The page also works when `index.html` is opened directly from disk, but cannot b
 
 ## Model
 
-The default model is `mistral-large-latest`. It can be changed in the settings; the field suggests the models available to the key.
+The default model is `mistral-small-latest`. It can be changed in the settings; the field suggests the models the key can see. If the Mistral plan does not include the chosen model (error 403), the app tries `mistral-small-latest`, `open-mistral-nemo` and `ministral-8b-latest` in that order and keeps the first one that works.
