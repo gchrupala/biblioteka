@@ -21,7 +21,7 @@ Conversations are kept in local storage. When a GitHub token is set, they are al
 
 ## Hosting
 
-The workflow in `.github/workflows/pages.yml` publishes the page to GitHub Pages on every push to `main`. Enable it under *Settings → Pages → Source: GitHub Actions*. GitHub Pages for a private repository requires a paid GitHub plan.
+GitHub Pages serves the page from the root of `main` (*Settings → Pages → Deploy from a branch*) at <https://gchrupala.github.io/biblioteka/>. Every push to `main` redeploys it.
 
 The page also works when `index.html` is opened directly from disk.
 
