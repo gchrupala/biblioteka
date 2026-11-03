@@ -272,6 +272,7 @@ async function respond(conv) {
   controller = new AbortController();
   setBusy(true);
   let aborted = false;
+  let error = null;
 
   try {
     const res = await requestChat(conv, controller.signal, messages);
@@ -299,13 +300,15 @@ async function respond(conv) {
     }
   } catch (err) {
     if (err.name === 'AbortError') aborted = true;
-    else { showError(err.message); aborted = true; }
+    else error = err.message;
   } finally {
     controller = null;
     setBusy(false);
   }
 
-  if (!reply.content && !aborted) showError('model nie zwrócił odpowiedzi. Spróbuj jeszcze raz.');
+  // Shown only after `controller` is cleared, so the retry button can appear.
+  if (error) showError(error);
+  else if (!reply.content && !aborted) showError('model nie zwrócił odpowiedzi. Spróbuj jeszcze raz.');
 
   conv = state.conversations[conv.id];
   if (reply.content && conv?.messages) {

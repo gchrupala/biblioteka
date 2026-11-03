@@ -91,8 +91,10 @@ You: What's your name?
 Author: Pomóż mi z zadaniem z matmy
 You: Help me with my maths homework.
 
+Author: Było ponuro i zimno.
+You: It was gloomy and cold.
 Author: zmień „gloomy” na prostsze słowo
-You: (the previous translation again, with "gloomy" replaced by a simpler word)`;
+You: It was dark and cold.`;
 }
 
 function systemPrompt(conv) {
