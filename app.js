@@ -224,6 +224,7 @@ function renderChat() {
   $('#input').placeholder = MODES[conv.mode].placeholder;
   if (conv.mode === 'translate') $('#target-lang').value = conv.targetLang;
   for (const msg of conv.messages) messages.append(messageElement(msg));
+  addRetryButton();
   messages.scrollTop = messages.scrollHeight;
 }
 
@@ -253,6 +254,13 @@ async function send(text) {
   if (!conv.title) conv.title = text.replace(/\s+/g, ' ').slice(0, 50);
   touch(conv);
   render();
+  await respond(conv);
+}
+
+// Asks the model to answer the last message in the conversation.
+async function respond(conv) {
+  if (controller) return;
+  $('#messages .retry')?.remove();
 
   const reply = { role: 'assistant', content: '', at: Date.now() };
   const el = messageElement(reply);
@@ -263,6 +271,7 @@ async function send(text) {
 
   controller = new AbortController();
   setBusy(true);
+  let aborted = false;
 
   try {
     const res = await requestChat(conv, controller.signal, messages);
@@ -274,28 +283,29 @@ async function send(text) {
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
+      const lines = buffer.split(/\r?\n/);
       buffer = lines.pop();
       for (const line of lines) {
         const data = line.replace(/^data: ?/, '').trim();
         if (!line.startsWith('data:') || !data || data === '[DONE]') continue;
-        const delta = JSON.parse(data).choices?.[0]?.delta?.content;
-        if (typeof delta === 'string') reply.content += delta;
+        const event = JSON.parse(data);
+        if (event.error || event.object === 'error') {
+          throw new Error(event.error?.message || event.message || 'błąd serwera Mistral');
+        }
+        reply.content += deltaText(event.choices?.[0]?.delta?.content);
       }
       setMarkdown(body, reply.content);
       messages.scrollTop = messages.scrollHeight;
     }
   } catch (err) {
-    if (err.name !== 'AbortError') {
-      const e = document.createElement('div');
-      e.className = 'msg error';
-      e.textContent = `Błąd: ${err.message}`;
-      messages.append(e);
-    }
+    if (err.name === 'AbortError') aborted = true;
+    else { showError(err.message); aborted = true; }
   } finally {
     controller = null;
     setBusy(false);
   }
+
+  if (!reply.content && !aborted) showError('model nie zwrócił odpowiedzi. Spróbuj jeszcze raz.');
 
   conv = state.conversations[conv.id];
   if (reply.content && conv?.messages) {
@@ -306,6 +316,37 @@ async function send(text) {
   } else {
     el.remove();
   }
+}
+
+// Streamed content is usually a string, but some models send a list of parts
+// (for example "thinking" and "text"); only the text parts are shown.
+function deltaText(content) {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content.map(part => (part?.type === 'text' && typeof part.text === 'string' ? part.text : '')).join('');
+  }
+  return '';
+}
+
+function showError(message) {
+  const e = document.createElement('div');
+  e.className = 'msg error';
+  e.textContent = `Błąd: ${message}`;
+  $('#messages').append(e);
+  addRetryButton();
+}
+
+// Offers to ask again when the last message in the conversation has no answer.
+function addRetryButton() {
+  const conv = activeConv();
+  const messages = $('#messages');
+  if (!conv || controller || conv.messages.at(-1)?.role !== 'user' || messages.querySelector('.retry')) return;
+  const button = document.createElement('button');
+  button.className = 'retry';
+  button.textContent = 'Spróbuj ponownie';
+  button.onclick = () => respond(conv);
+  messages.append(button);
+  messages.scrollTop = messages.scrollHeight;
 }
 
 function chatRequest(conv, model, signal) {

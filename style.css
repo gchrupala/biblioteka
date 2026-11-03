@@ -142,6 +142,7 @@ main {
 .msg.assistant p:first-child { margin-top: 0; }
 .msg.assistant p:last-child { margin-bottom: 0; }
 .msg.error { border-color: var(--danger); color: var(--danger); }
+.retry { align-self: flex-start; }
 .msg.info { align-self: center; font-size: 13px; color: var(--muted); background: transparent; }
 .msg-actions { margin-top: 6px; display: flex; gap: 6px; }
 .msg-actions button { font-size: 12px; padding: 2px 8px; color: var(--muted); }
