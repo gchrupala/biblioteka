@@ -23,7 +23,9 @@ Conversations are kept in local storage. When a GitHub token is set, they are al
 
 GitHub Pages serves the page from the root of `main` (*Settings → Pages → Deploy from a branch*) at <https://gchrupala.github.io/biblioteka/>. Every push to `main` redeploys it.
 
-The page also works when `index.html` is opened directly from disk.
+The page can be installed as an app: in Chrome or Edge via the install icon in the address bar or *Install app* in the menu, on Android via *Add to home screen*, on iPhone/iPad via *Share → Add to Home Screen* in Safari. `manifest.webmanifest`, `sw.js` and `icons/` make this possible.
+
+The page also works when `index.html` is opened directly from disk, but cannot be installed that way.
 
 ## Model
 

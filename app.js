@@ -576,6 +576,10 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') sync();
 });
 
+if ('serviceWorker' in navigator && window.isSecureContext && location.protocol !== 'file:') {
+  navigator.serviceWorker.register('sw.js').catch(() => { /* not installable, still works */ });
+}
+
 render();
 if (!settings.mistralKey) openSettings();
 sync();
