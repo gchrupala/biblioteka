@@ -3,7 +3,7 @@
   "short_name": "Biblioteka",
   "description": "Pomysły na opowiadania i tłumaczenia",
   "lang": "pl",
-  "id": "/biblioteka/",
+  "id": "/biblioteka/?app=2",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
