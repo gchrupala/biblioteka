@@ -9,7 +9,7 @@ const MISTRAL_URL = 'https://api.mistral.ai/v1';
 const DEFAULTS = {
   user: '',
   mistralKey: '',
-  model: 'mistral-small-latest',
+  model: 'mistral-large-latest',
   githubToken: '',
   repo: 'gchrupala/app-data',
 };
@@ -49,6 +49,13 @@ function store(key, value) {
 }
 
 const settings = { ...DEFAULTS, ...load(`${APP}-settings`, {}) };
+// Devices set up before the default changed have the old default saved;
+// move them to the new one once. A later 403 fallback is kept.
+if (!settings.largeDefault) {
+  if (settings.model === 'mistral-small-latest') settings.model = DEFAULTS.model;
+  settings.largeDefault = true;
+  store(`${APP}-settings`, settings);
+}
 const state = load(`${APP}-state`, { conversations: {}, activeId: null });
 let device = load(`${APP}-device`, null);
 if (!device) {
