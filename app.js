@@ -4,7 +4,9 @@
 // Configuration
 // ---------------------------------------------------------------------------
 
-const APP = 'biblioteka';
+const APP = 'fabula';
+// Earlier name of the app; its synced file is read once if the new one does not exist yet.
+const LEGACY_APP = 'biblioteka';
 const MISTRAL_URL = 'https://api.mistral.ai/v1';
 const DEFAULTS = {
   user: '',
@@ -440,7 +442,7 @@ async function loadModels() {
 }
 
 // ---------------------------------------------------------------------------
-// GitHub sync: one JSON file per user at <user>/biblioteka.json
+// GitHub sync: one JSON file per user at <user>/fabula.json
 // ---------------------------------------------------------------------------
 
 function b64encode(str) {
@@ -462,8 +464,8 @@ function syncConfigured() {
   return settings.githubToken && settings.repo && settings.user;
 }
 
-function dataPath() {
-  return [settings.user.trim(), `${APP}.json`].map(encodeURIComponent).join('/');
+function dataPath(app = APP) {
+  return [settings.user.trim(), `${app}.json`].map(encodeURIComponent).join('/');
 }
 
 async function gh(path, options = {}) {
@@ -480,9 +482,17 @@ async function gh(path, options = {}) {
   return res;
 }
 
-async function fetchRemote() {
-  const res = await gh(`/contents/${dataPath()}`);
-  if (res.status === 404) return { sha: null, conversations: {} };
+async function fetchRemote(app = APP) {
+  const res = await gh(`/contents/${dataPath(app)}`);
+  if (res.status === 404) {
+    // No file under the new name yet: start from the file saved under the old name, if any.
+    // The next save then creates the file under the new name.
+    if (app === APP) {
+      const legacy = await fetchRemote(LEGACY_APP);
+      return { sha: null, conversations: legacy.conversations };
+    }
+    return { sha: null, conversations: {} };
+  }
   if (!res.ok) throw new Error(`GitHub ${res.status}`);
   const meta = await res.json();
   let content = meta.content;
@@ -538,10 +548,12 @@ async function sync() {
       saveState();
       render();
 
-      if (JSON.stringify(merged) === JSON.stringify(remote.conversations)) break;
+      // Nothing to save, unless the data came from the old file name and still has to be written under the new one.
+      const unchanged = JSON.stringify(merged) === JSON.stringify(remote.conversations);
+      if (unchanged && (remote.sha || Object.keys(merged).length === 0)) break;
 
       const body = {
-        message: `Biblioteka: zapis ${new Date().toISOString()}`,
+        message: `Fabula: zapis ${new Date().toISOString()}`,
         content: b64encode(JSON.stringify({
           [APP]: 1,
           saved: Date.now(),

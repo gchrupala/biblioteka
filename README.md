@@ -1,4 +1,4 @@
-# Biblioteka
+# Fabula
 
 A small chat page for brainstorming stories and translating them. It runs entirely in the browser and talks directly to the [Mistral API](https://docs.mistral.ai/). There is no server.
 
@@ -17,11 +17,11 @@ Keys are stored in the browser's local storage on that device.
 
 ## Data
 
-Conversations are kept in local storage. When a GitHub token is set, they are also synced to `<name>/biblioteka.json` in `gchrupala/app-data`, following the format of the other apps there (`{"biblioteka": 1, "saved", "device", "data"}`). Sync runs on page load, when the page becomes visible again, a few seconds after each reply, and on the *Synchronizuj* button. Conversations from several devices are merged; for the same conversation, the most recently changed version wins.
+Conversations are kept in local storage. When a GitHub token is set, they are also synced to `<name>/fabula.json` in `gchrupala/app-data`, following the format of the other apps there (`{"fabula": 1, "saved", "device", "data"}`). The app was earlier called Biblioteka: if `<name>/fabula.json` does not exist yet, the conversations are read from `<name>/biblioteka.json` and saved under the new name. Sync runs on page load, when the page becomes visible again, a few seconds after each reply, and on the *Synchronizuj* button. Conversations from several devices are merged; for the same conversation, the most recently changed version wins.
 
 ## Hosting
 
-GitHub Pages serves the page from the root of `main` (*Settings → Pages → Deploy from a branch*) at <https://gchrupala.github.io/biblioteka/>. Every push to `main` redeploys it.
+GitHub Pages serves the page from the root of `main` (*Settings → Pages → Deploy from a branch*) at <https://fabula.maxapki.top/> (custom domain set in `CNAME` and under *Settings → Pages*). Every push to `main` redeploys it.
 
 The page can be installed as an app: in Chrome or Edge via the install icon in the address bar or *Install app* in the menu, on Android via *Add to home screen*, on iPhone/iPad via *Share → Add to Home Screen* in Safari. `manifest.webmanifest`, `sw.js` and `icons/` make this possible.
 

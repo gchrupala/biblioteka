@@ -1,9 +1,9 @@
 {
-  "name": "Biblioteka",
-  "short_name": "Biblioteka",
+  "name": "Fabula",
+  "short_name": "Fabula",
   "description": "Pomysły na opowiadania i tłumaczenia",
   "lang": "pl",
-  "id": "/biblioteka/?app=2",
+  "id": "/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
