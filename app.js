@@ -20,6 +20,11 @@ const DEFAULTS = {
 // All are open-weight models.
 const FALLBACK_MODELS = ['mistral-small-latest', 'open-mistral-nemo', 'ministral-8b-latest'];
 
+// Long conversations: only the most recent messages are sent to the model,
+// at most this many and at most this many characters (the latest message is always sent).
+const HISTORY_MAX_MESSAGES = 40;
+const HISTORY_MAX_CHARS = 40000;
+
 const LANGS = {
   pl: 'polski',
   en: 'angielski',
@@ -59,6 +64,8 @@ if (!settings.largeDefault) {
   store(`${APP}-settings`, settings);
 }
 const state = load(`${APP}-state`, { conversations: {}, activeId: null });
+// Her story notes, given to the writing helper in every conversation.
+if (!state.notes) state.notes = { text: '', updatedAt: 0 };
 let device = load(`${APP}-device`, null);
 if (!device) {
   device = Math.random().toString(36).slice(2, 18);
@@ -361,7 +368,23 @@ function addRetryButton() {
   messages.scrollTop = messages.scrollHeight;
 }
 
+// The most recent part of a conversation that fits the limits above.
+// It starts with one of her messages, as the model expects.
+function recentMessages(messages, maxMessages = HISTORY_MAX_MESSAGES, maxChars = HISTORY_MAX_CHARS) {
+  const kept = [];
+  let chars = 0;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const length = messages[i].content.length;
+    if (kept.length && (kept.length >= maxMessages || chars + length > maxChars)) break;
+    kept.unshift(messages[i]);
+    chars += length;
+  }
+  while (kept.length > 1 && kept[0].role !== 'user') kept.shift();
+  return { messages: kept, trimmed: kept.length < messages.length };
+}
+
 function chatRequest(conv, model, signal) {
+  const history = recentMessages(conv.messages);
   return fetch(`${MISTRAL_URL}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -373,8 +396,8 @@ function chatRequest(conv, model, signal) {
       stream: true,
       temperature: TEMPERATURE[conv.mode],
       messages: [
-        { role: 'system', content: systemPrompt(conv) },
-        ...conv.messages.map(m => ({ role: m.role, content: apiContent(conv, m) })),
+        { role: 'system', content: systemPrompt(conv, { notes: state.notes.text, trimmed: history.trimmed }) },
+        ...history.messages.map(m => ({ role: m.role, content: apiContent(conv, m) })),
       ],
     }),
     signal,
@@ -489,9 +512,9 @@ async function fetchRemote(app = APP) {
     // The next save then creates the file under the new name.
     if (app === APP) {
       const legacy = await fetchRemote(LEGACY_APP);
-      return { sha: null, conversations: legacy.conversations };
+      return { sha: null, conversations: legacy.conversations, notes: legacy.notes };
     }
-    return { sha: null, conversations: {} };
+    return { sha: null, conversations: {}, notes: null };
   }
   if (!res.ok) throw new Error(`GitHub ${res.status}`);
   const meta = await res.json();
@@ -503,7 +526,7 @@ async function fetchRemote(app = APP) {
     content = (await blob.json()).content;
   }
   const json = content ? JSON.parse(b64decode(content)) : {};
-  return { sha: meta.sha, conversations: json.data?.conversations || {} };
+  return { sha: meta.sha, conversations: json.data?.conversations || {}, notes: json.data?.notes || null };
 }
 
 function merge(local, remote) {
@@ -544,12 +567,15 @@ async function sync() {
       const remote = await fetchRemote();
       const merged = merge(state.conversations, remote.conversations);
       state.conversations = merged;
+      // Notes: the most recently changed version wins.
+      if (remote.notes && remote.notes.updatedAt > state.notes.updatedAt) state.notes = remote.notes;
       if (state.activeId && !activeConv()) state.activeId = liveConversations()[0]?.id || null;
       saveState();
       render();
 
       // Nothing to save, unless the data came from the old file name and still has to be written under the new one.
-      const unchanged = JSON.stringify(merged) === JSON.stringify(remote.conversations);
+      const notesUnchanged = JSON.stringify(state.notes) === JSON.stringify(remote.notes || { text: '', updatedAt: 0 });
+      const unchanged = notesUnchanged && JSON.stringify(merged) === JSON.stringify(remote.conversations);
       if (unchanged && (remote.sha || Object.keys(merged).length === 0)) break;
 
       const body = {
@@ -558,7 +584,7 @@ async function sync() {
           [APP]: 1,
           saved: Date.now(),
           device,
-          data: { conversations: merged },
+          data: { conversations: merged, notes: state.notes },
         }, null, 1)),
       };
       if (remote.sha) body.sha = remote.sha;
@@ -583,6 +609,79 @@ async function sync() {
 // ---------------------------------------------------------------------------
 // Settings dialog
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Story notes dialog
+// ---------------------------------------------------------------------------
+
+function openNotes() {
+  $('#notes-text').value = state.notes.text;
+  const conv = activeConv();
+  $('#notes-fill').disabled = !conv || !conv.messages.length || !settings.mistralKey;
+  $('#notes-status').textContent = '';
+  closeSidebar();
+  $('#notes').showModal();
+}
+
+$('#notes').addEventListener('close', () => {
+  if ($('#notes').returnValue !== 'save') return;
+  const text = $('#notes-text').value.trim();
+  if (text === state.notes.text) return;
+  state.notes = { text, updatedAt: Date.now() };
+  saveState();
+  scheduleSync();
+});
+
+// Asks the model for a draft of new notes from the open conversation and adds
+// it to the text field, where she can check and edit it before saving.
+async function draftNotes() {
+  const conv = activeConv();
+  if (!conv) return;
+  const button = $('#notes-fill');
+  const status = $('#notes-status');
+  button.disabled = true;
+  status.textContent = 'Przygotowuję notatki z tej rozmowy…';
+  // Her messages in full, the companion's shortened: the notes should come from her.
+  const shortened = conv.messages.map(m => ({
+    role: m.role,
+    content: m.role === 'user' || m.content.length <= 400 ? m.content : m.content.slice(0, 400) + ' […]',
+  }));
+  const transcript = recentMessages(shortened, 400, 60000).messages
+    .map(m => `${m.role === 'user' ? 'Her' : 'Companion'}: ${m.content}`)
+    .join('\n\n');
+  try {
+    const res = await fetch(`${MISTRAL_URL}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${settings.mistralKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: settings.model || DEFAULTS.model,
+        temperature: 0.2,
+        messages: [
+          { role: 'system', content: notesPrompt($('#notes-text').value) },
+          { role: 'user', content: transcript },
+        ],
+      }),
+    });
+    if (!res.ok) throw new Error(errorMessage(res.status, await res.text()));
+    // Plain text for the notes field: no bold or italics markers, no doubled list dashes.
+    const draft = deltaText((await res.json()).choices?.[0]?.message?.content)
+      .replace(/\*+/g, '')
+      .replace(/^(\s*)- - /gm, '$1- ')
+      .trim();
+    if (!draft || draft.includes('NOTHING_NEW')) {
+      status.textContent = 'W tej rozmowie nie ma nic nowego do zapisania.';
+    } else {
+      const field = $('#notes-text');
+      field.value = (field.value.trim() ? field.value.trim() + '\n\n' : '') + draft;
+      field.scrollTop = field.scrollHeight;
+      status.textContent = 'Dodano propozycję na końcu. Sprawdź ją, popraw i kliknij Zapisz.';
+    }
+  } catch (err) {
+    status.textContent = `Błąd: ${err.message}`;
+  } finally {
+    button.disabled = false;
+  }
+}
 
 function openSettings() {
   const form = $('#settings-form');
@@ -624,6 +723,8 @@ $('#new-brainstorm').onclick = () => createConversation('brainstorm');
 $('#new-translate').onclick = () => createConversation('translate');
 $('#delete-conv').onclick = () => { const c = activeConv(); if (c) deleteConversation(c); };
 $('#settings-btn').onclick = openSettings;
+$('#notes-btn').onclick = openNotes;
+$('#notes-fill').onclick = draftNotes;
 $('#sync-btn').onclick = sync;
 $('#open-sidebar').onclick = openSidebar;
 $('#close-sidebar').onclick = closeSidebar;

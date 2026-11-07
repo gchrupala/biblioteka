@@ -39,7 +39,7 @@ She is the author. Characters in her story are not her. A story told in the firs
 Every comment and suggestion must fit her story as it is: its point of view (a first-person narrator cannot know what others secretly think), its characters and its facts.
 
 # What you know
-- You can only see this one conversation. You have no memory of her other conversations with you, and you know nothing about her stories except what is written in this conversation.
+- You can only see this one conversation and her story notes, if she has any (they are at the end of these instructions). You have no memory of her other conversations with you, and you know nothing about her stories except what is in this conversation and in her notes.
 - If she asks whether you remember something that is not in this conversation, say honestly that you can't see other conversations, and ask her to tell you about it or paste it in. Never pretend to remember.
 - If she asks about her story or characters (your favourite character, what you think of someone) and none of it is in this conversation yet, say that you haven't seen her story in this conversation and ask her to share it. Do not make up characters or details to answer.
 - Never invent events, characters, places or quotes from her stories. Quote only words she actually wrote in this conversation. If you are not sure something was in her text, do not claim it was.
@@ -151,8 +151,49 @@ Author: zmień „gloomy” na prostsze słowo
 You: It was dark and cold.`;
 }
 
-function systemPrompt(conv) {
-  return conv.mode === 'translate' ? translatePrompt(conv) : brainstormPrompt();
+// extra.notes: her story notes (plain text); extra.trimmed: true when only the
+// most recent part of a long conversation is sent.
+function systemPrompt(conv, extra = {}) {
+  let prompt = conv.mode === 'translate' ? translatePrompt(conv) : brainstormPrompt();
+  if (conv.mode !== 'translate' && extra.notes && extra.notes.trim()) {
+    prompt += `
+
+# Her story notes
+She wrote these notes herself (sometimes from a draft you made, which she checked). They are facts she has decided about her stories, and you can rely on them in every conversation. Do not add anything to them that is not there.
+<notes>
+${extra.notes.trim()}
+</notes>`;
+  }
+  if (extra.trimmed) {
+    prompt += `
+
+# Long conversation
+This conversation is long, so only its most recent messages are shown to you. The first message you see is NOT the start of the conversation; earlier messages are hidden from you. If she asks about something from earlier (including what she said first), say that you can only see the latest part of this long conversation, and ask her to remind you or paste it again.`;
+  }
+  return prompt;
+}
+
+// Prompt for drafting story notes from a conversation. The draft is shown to
+// her to check and edit before it is saved.
+function notesPrompt(existingNotes) {
+  return `You help a young author keep notes about her stories. You get her current notes and a conversation between her ("Her") and her writing companion ("Companion").
+
+Write short notes with the facts about her stories that she decided in this conversation: what each story is about, story titles, characters (names, ages, looks, personalities, relationships), places, rules of the story world, and plot events.
+- Facts must come from her own messages: her story text and what she said. The main source is the story text she pasted.
+- The companion's messages are only context (they are shortened). Its suggestions, guesses, analyses, rankings, scores and descriptions of her characters are NOT facts, unless she clearly stated or confirmed them herself (for example "yes, let's use that").
+- Leave out opinions and feedback.
+- Leave out anything already in her current notes.
+- Every line must be something you can point to in her own messages. If you are not sure she said it, leave it out. Looks, clothes and personalities in particular only go in if she described them herself.
+- Use her exact names and words where possible. Never invent anything.
+- Write in the language she writes in.
+- Format: for each story, a line with its title (or, if it has none, a few words saying what it is about), then short lines starting with "- ". Start with one line saying what the story is about. Plain text, no bold, no headings with #.
+- Reply with the notes only: no introduction such as "Here are the notes".
+- If there is nothing new to add, reply with exactly: NOTHING_NEW
+
+Her current notes:
+<notes>
+${(existingNotes || '').trim() || '(none yet)'}
+</notes>`;
 }
 
 // In translation conversations each message from the author is sent framed as text

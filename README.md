@@ -15,9 +15,17 @@ The system prompts are in `prompts.js`.
 
 Keys are stored in the browser's local storage on that device.
 
+## Story notes
+
+*Notatki* opens her story notes: free text with titles, characters, names and places she has decided. They are added to the writing helper's instructions in every *Pomysły* conversation, so it knows her stories across conversations. *Uzupełnij z tej rozmowy* asks the model for a draft of new notes from the open conversation and adds it to the end of the text, for her to check and edit before saving. The notes are synced with the conversations.
+
+## Long conversations
+
+Only the most recent part of a conversation is sent to the model: at most 40 messages and 40,000 characters (the latest message is always sent). The model is told when earlier messages are hidden.
+
 ## Data
 
-Conversations are kept in local storage. When a GitHub token is set, they are also synced to `<name>/fabula.json` in `gchrupala/app-data`, following the format of the other apps there (`{"fabula": 1, "saved", "device", "data"}`). The app was earlier called Biblioteka: if `<name>/fabula.json` does not exist yet, the conversations are read from `<name>/biblioteka.json` and saved under the new name. Sync runs on page load, when the page becomes visible again, a few seconds after each reply, and on the *Synchronizuj* button. Conversations from several devices are merged; for the same conversation, the most recently changed version wins.
+Conversations are kept in local storage. When a GitHub token is set, they are also synced to `<name>/fabula.json` in `gchrupala/app-data`, following the format of the other apps there (`{"fabula": 1, "saved", "device", "data": {"conversations", "notes"}}`). The app was earlier called Biblioteka: if `<name>/fabula.json` does not exist yet, the conversations are read from `<name>/biblioteka.json` and saved under the new name. Sync runs on page load, when the page becomes visible again, a few seconds after each reply, and on the *Synchronizuj* button. Conversations from several devices are merged; for the same conversation, the most recently changed version wins.
 
 ## Hosting
 

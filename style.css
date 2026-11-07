@@ -193,6 +193,20 @@ dialog input {
   background: var(--assistant-bubble);
 }
 dialog fieldset { border: 1px solid var(--border); border-radius: 8px; margin: 0 0 12px; }
+#notes-text {
+  width: 100%;
+  min-height: 240px;
+  resize: vertical;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--assistant-bubble);
+  font: inherit;
+  line-height: 1.4;
+}
+.hint { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+.notes-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0 12px; }
+.notes-tools .hint { margin: 0; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
 .only-mobile { display: none; }

@@ -33,6 +33,7 @@
           <button id="sync-btn">Synchronizuj</button>
           <span id="sync-status"></span>
         </div>
+        <button id="notes-btn">Notatki</button>
         <button id="settings-btn">Ustawienia</button>
       </div>
     </aside>
@@ -58,6 +59,22 @@
       </form>
     </main>
   </div>
+
+  <dialog id="notes">
+    <form method="dialog" id="notes-form">
+      <h2>Notatki o moich historiach</h2>
+      <p class="hint">Fabula czyta te notatki w każdej rozmowie w trybie Pomysły. Zapisz tu tytuły, postacie, imiona, miejsca i to, co już postanowiłaś.</p>
+      <textarea id="notes-text" rows="14" dir="auto" spellcheck="false"></textarea>
+      <div class="notes-tools">
+        <button type="button" id="notes-fill">Uzupełnij z tej rozmowy</button>
+        <span id="notes-status" class="hint"></span>
+      </div>
+      <div class="dialog-actions">
+        <button value="cancel" formnovalidate>Anuluj</button>
+        <button value="save" class="primary">Zapisz</button>
+      </div>
+    </form>
+  </dialog>
 
   <dialog id="settings">
     <form method="dialog" id="settings-form">
